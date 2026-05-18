@@ -1,4 +1,4 @@
-import { pointFrom } from "@excalidraw/math";
+import { clamp, pointFrom } from "@excalidraw/math";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -548,9 +548,6 @@ const STROKE_WIDTH_MIN = 0.5;
 const STROKE_WIDTH_MAX = 32;
 const STROKE_WIDTH_STEP = 0.5;
 
-const clampStrokeWidth = (value: number) =>
-  Math.min(STROKE_WIDTH_MAX, Math.max(STROKE_WIDTH_MIN, value));
-
 const StrokeWidthCustomInput = ({
   value,
   onChange,
@@ -571,7 +568,7 @@ const StrokeWidthCustomInput = ({
       setDraft(value == null ? "" : String(value));
       return;
     }
-    const clamped = clampStrokeWidth(parsed);
+    const clamped = clamp(parsed, STROKE_WIDTH_MIN, STROKE_WIDTH_MAX);
     setDraft(String(clamped));
     if (clamped !== value) {
       onChange(clamped);
