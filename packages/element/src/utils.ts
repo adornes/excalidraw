@@ -34,7 +34,12 @@ import type {
   Zoom,
 } from "@excalidraw/excalidraw/types";
 
-import { elementCenterPoint, getDiamondPoints } from "./bounds";
+import {
+  elementCenterPoint,
+  getDiamondPoints,
+  getTrophyPoints,
+  TROPHY_BINDING_VERTEX_INDICES,
+} from "./bounds";
 
 import { generateLinearCollisionShape } from "./shape";
 
@@ -53,6 +58,7 @@ import type {
   ExcalidrawArrowElement,
   ExcalidrawBindableElement,
   ExcalidrawDiamondElement,
+  ExcalidrawTrophyElement,
   ExcalidrawElement,
   ExcalidrawFreeDrawElement,
   ExcalidrawLinearElement,
@@ -462,6 +468,36 @@ export function deconstructDiamondElement(
   return shape;
 }
 
+/**
+ * Get the **unrotated** building components of a trophy element
+ * in the form of line segments.
+ */
+export function deconstructTrophyElement(
+  element: ExcalidrawTrophyElement,
+  offset: number = 0,
+): [LineSegment<GlobalPoint>[], Curve<GlobalPoint>[]] {
+  const cachedShape = getElementShapesCacheEntry(element, offset);
+
+  if (cachedShape) {
+    return cachedShape;
+  }
+
+  const localPoints = getTrophyPoints(element);
+  const globalPoints = localPoints.map(([px, py]) =>
+    pointFrom<GlobalPoint>(element.x + px, element.y + py),
+  );
+
+  const sides = globalPoints.map((p, i) =>
+    lineSegment(p, globalPoints[(i + 1) % globalPoints.length]),
+  );
+
+  const shape = [sides, []] as ElementShape;
+
+  setElementShapesCacheEntry(element, shape, offset);
+
+  return shape;
+}
+
 // Checks if the first and last point are close enough
 // to be considered a loop
 export const isPathALoop = (
@@ -602,6 +638,16 @@ export const getSnapOutlineMidPoint = (
 
           return pointFrom<GlobalPoint>(rotatedPoint[0], rotatedPoint[1]);
         })
+      : element.type === "trophy"
+      ? (() => {
+          const pts = getTrophyPoints(element);
+          return TROPHY_BINDING_VERTEX_INDICES.map((index) => {
+            const [lx, ly] = pts[index];
+            const global = pointFrom<GlobalPoint>(element.x + lx, element.y + ly);
+            const rotatedPoint = pointRotateRads(global, center, element.angle);
+            return pointFrom<GlobalPoint>(rotatedPoint[0], rotatedPoint[1]);
+          });
+        })()
       : [
           // RIGHT midpoint
           pointRotateRads(

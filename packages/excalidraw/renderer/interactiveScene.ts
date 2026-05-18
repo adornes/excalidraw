@@ -23,8 +23,11 @@ import {
 import {
   deconstructDiamondElement,
   deconstructRectanguloidElement,
+  deconstructTrophyElement,
   elementCenterPoint,
   getDiamondBaseCorners,
+  getTrophyPoints,
+  TROPHY_BINDING_VERTEX_INDICES,
   FOCUS_POINT_SIZE,
   getOmitSidesForEditorInterface,
   getTransformHandles,
@@ -324,6 +327,27 @@ const renderBindingHighlightForBindableElement_simple = (
           context.closePath();
           context.stroke();
           break;
+        case "trophy":
+          {
+            const [segments] = deconstructTrophyElement(
+              suggestedBinding.element,
+            );
+
+            segments.forEach((segment) => {
+              context.beginPath();
+              context.moveTo(
+                segment[0][0] - suggestedBinding.element.x,
+                segment[0][1] - suggestedBinding.element.y,
+              );
+              context.lineTo(
+                segment[1][0] - suggestedBinding.element.x,
+                segment[1][1] - suggestedBinding.element.y,
+              );
+              context.stroke();
+            });
+          }
+
+          break;
         case "diamond":
           {
             const [segments, curves] = deconstructDiamondElement(
@@ -461,6 +485,21 @@ const renderBindingHighlightForBindableElement_simple = (
             return pointFrom<GlobalPoint>(rotatedPoint[0], rotatedPoint[1]);
           },
         );
+      } else if (suggestedBinding.element.type === "trophy") {
+        const pts = getTrophyPoints(suggestedBinding.element);
+        midpoints = TROPHY_BINDING_VERTEX_INDICES.map((index) => {
+          const [lx, ly] = pts[index];
+          const globalPoint = pointFrom<GlobalPoint>(
+            suggestedBinding.element.x + lx,
+            suggestedBinding.element.y + ly,
+          );
+          const rotatedPoint = pointRotateRads(
+            globalPoint,
+            center,
+            suggestedBinding.element.angle,
+          );
+          return pointFrom<GlobalPoint>(rotatedPoint[0], rotatedPoint[1]);
+        });
       } else {
         const basePoints = [
           {
@@ -665,6 +704,25 @@ const renderBindingHighlightForBindableElement_complex = (
           context.closePath();
           context.stroke();
           break;
+        case "trophy":
+          {
+            const [segments] = deconstructTrophyElement(element, offset);
+
+            segments.forEach((segment) => {
+              context.beginPath();
+              context.moveTo(
+                segment[0][0] - element.x + offset,
+                segment[0][1] - element.y + offset,
+              );
+              context.lineTo(
+                segment[1][0] - element.x + offset,
+                segment[1][1] - element.y + offset,
+              );
+              context.stroke();
+            });
+          }
+
+          break;
         case "diamond":
           {
             const [segments, curves] = deconstructDiamondElement(
@@ -827,6 +885,25 @@ const renderBindingHighlightForBindableElement_complex = (
         midpoints = curves.map((curve) => {
           const point = bezierEquation(curve, 0.5);
           const rotatedPoint = pointRotateRads(point, center, element.angle);
+          return {
+            x: rotatedPoint[0] - element.x,
+            y: rotatedPoint[1] - element.y,
+          };
+        });
+      } else if (element.type === "trophy") {
+        const center = elementCenterPoint(element, allElementsMap);
+        const pts = getTrophyPoints(element);
+        midpoints = TROPHY_BINDING_VERTEX_INDICES.map((index) => {
+          const [lx, ly] = pts[index];
+          const globalPoint = pointFrom<GlobalPoint>(
+            element.x + lx,
+            element.y + ly,
+          );
+          const rotatedPoint = pointRotateRads(
+            globalPoint,
+            center,
+            element.angle,
+          );
           return {
             x: rotatedPoint[0] - element.x,
             y: rotatedPoint[1] - element.y,

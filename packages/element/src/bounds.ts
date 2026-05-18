@@ -52,6 +52,7 @@ import { getElementShape } from "./shape";
 import {
   deconstructDiamondElement,
   deconstructRectanguloidElement,
+  deconstructTrophyElement,
 } from "./utils";
 
 import type { Drawable, Op } from "roughjs/bin/core";
@@ -203,6 +204,17 @@ export class ElementBounds {
       const maxX = Math.max(x11, x12, x22, x21);
       const maxY = Math.max(y11, y12, y22, y21);
       bounds = [minX, minY, maxX, maxY];
+    } else if (element.type === "trophy") {
+      const trophyPoints = getTrophyPoints(element).map(([px, py]) =>
+        pointRotateRads(
+          pointFrom(element.x + px, element.y + py),
+          pointFrom(cx, cy),
+          element.angle,
+        ),
+      );
+      const xs = trophyPoints.map((p) => p[0]);
+      const ys = trophyPoints.map((p) => p[1]);
+      bounds = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
     } else if (element.type === "ellipse") {
       const w = (x2 - x1) / 2;
       const h = (y2 - y1) / 2;
@@ -369,6 +381,9 @@ export const getElementLineSegments = (
     const rotatedSides = getRotatedSides(sides, center, element.angle);
 
     return [...rotatedSides, ...cornerSegments];
+  } else if (element.type === "trophy") {
+    const [sides] = deconstructTrophyElement(element);
+    return getRotatedSides(sides, center, element.angle);
   } else if (shape.type === "polygon") {
     if (isTextElement(element)) {
       const container = getContainerElement(element, elementsMap);
@@ -536,6 +551,37 @@ export const getDiamondPoints = (element: ExcalidrawElement) => {
 
   return [topX, topY, rightX, rightY, bottomX, bottomY, leftX, leftY];
 };
+
+const TROPHY_NORMALIZED_POINTS: ReadonlyArray<readonly [number, number]> = [
+  [0.22, 0.06],
+  [0.05, 0.14],
+  [0.15, 0.24],
+  [0.32, 0.3],
+  [0.28, 0],
+  [0.72, 0],
+  [0.68, 0.3],
+  [0.85, 0.24],
+  [0.95, 0.14],
+  [0.78, 0.06],
+  [0.62, 0.42],
+  [0.58, 0.54],
+  [0.72, 0.6],
+  [0.72, 0.76],
+  [0.28, 0.76],
+  [0.28, 0.6],
+  [0.42, 0.54],
+  [0.38, 0.42],
+];
+
+export const getTrophyPoints = (element: ExcalidrawElement): LocalPoint[] => {
+  const { width, height } = element;
+  return TROPHY_NORMALIZED_POINTS.map(([nx, ny]) =>
+    pointFrom<LocalPoint>(nx * width, ny * height),
+  );
+};
+
+/** Indices into trophy polygon used for arrow-binding midpoint hints */
+export const TROPHY_BINDING_VERTEX_INDICES = [4, 5, 8, 13, 14] as const;
 
 // reference: https://eliot-jones.com/2019/12/cubic-bezier-curve-bounding-boxes
 const getBezierValueForT = (

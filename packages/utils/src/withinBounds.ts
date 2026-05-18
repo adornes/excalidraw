@@ -1,5 +1,5 @@
 import { arrayToMap, type Bounds } from "@excalidraw/common";
-import { getElementBounds } from "@excalidraw/element";
+import { getElementBounds, getTrophyPoints } from "@excalidraw/element";
 import {
   isArrowElement,
   isExcalidrawElement,
@@ -45,6 +45,15 @@ const getNonLinearElementRelativePoints = (
       pointFrom(element.width, element.height / 2),
       pointFrom(element.width / 2, element.height),
       pointFrom(0, element.height / 2),
+    ];
+  }
+  if (element.type === "trophy") {
+    const points = getTrophyPoints(element);
+    return [
+      points[4],
+      points[6],
+      points[13],
+      points[0],
     ];
   }
   return [

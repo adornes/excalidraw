@@ -15,6 +15,7 @@ import {
   pointDistance,
   type LocalPoint,
   pointRotateRads,
+  polygonFromPoints,
 } from "@excalidraw/math";
 import {
   ROUGHNESS,
@@ -61,6 +62,7 @@ import {
   getArrowheadPoints,
   getDiamondPoints,
   getElementAbsoluteCoords,
+  getTrophyPoints,
 } from "./bounds";
 import { shouldTestInside } from "./collision";
 
@@ -230,6 +232,7 @@ export const generateRoughOptions = (
     case "iframe":
     case "embeddable":
     case "diamond":
+    case "trophy":
     case "ellipse": {
       options.fillStyle = element.fillStyle;
       options.fill = isTransparent(element.backgroundColor)
@@ -865,6 +868,13 @@ const _generateElementShape = (
       }
       return shape;
     }
+    case "trophy": {
+      const shape: ElementShapes[typeof element.type] = generator.polygon(
+        getTrophyPoints(element) as [number, number][],
+        generateRoughOptions(element, false, isDarkMode),
+      );
+      return shape;
+    }
     case "ellipse": {
       const shape: ElementShapes[typeof element.type] = generator.ellipse(
         element.width / 2,
@@ -1078,6 +1088,21 @@ export const getElementShape = <Point extends GlobalPoint | LocalPoint>(
   elementsMap: ElementsMap,
 ): GeometricShape<Point> => {
   switch (element.type) {
+    case "trophy": {
+      const [, , , , cx, cy] = getElementAbsoluteCoords(element, elementsMap);
+      const center = pointFrom<Point>(cx, cy);
+      const pts = getTrophyPoints(element).map(([lx, ly]) =>
+        pointRotateRads(
+          pointFrom<Point>(element.x + lx, element.y + ly),
+          center,
+          element.angle,
+        ),
+      );
+      return {
+        type: "polygon",
+        data: polygonFromPoints(pts),
+      };
+    }
     case "rectangle":
     case "diamond":
     case "frame":

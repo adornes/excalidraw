@@ -1659,7 +1659,7 @@ export const snapToMid = (
       center,
       angle,
     );
-  } else if (bindTarget.type === "diamond") {
+  } else if (bindTarget.type === "diamond" || bindTarget.type === "trophy") {
     const distance = bindingGap;
     const topLeft = pointFrom<GlobalPoint>(
       x + width / 4 - distance,

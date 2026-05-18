@@ -34,12 +34,16 @@ import {
   type LocalPoint,
 } from "@excalidraw/math";
 
-import { getElementAbsoluteCoords } from "@excalidraw/element";
+import {
+  getElementAbsoluteCoords,
+  getTrophyPoints,
+} from "@excalidraw/element";
 
 import type {
   ElementsMap,
   ExcalidrawBindableElement,
   ExcalidrawDiamondElement,
+  ExcalidrawTrophyElement,
   ExcalidrawElement,
   ExcalidrawEllipseElement,
   ExcalidrawEmbeddableElement,
@@ -105,6 +109,7 @@ export type GeometricShape<Point extends GlobalPoint | LocalPoint> =
 type RectangularElement =
   | ExcalidrawRectangleElement
   | ExcalidrawDiamondElement
+  | ExcalidrawTrophyElement
   | ExcalidrawFrameLikeElement
   | ExcalidrawEmbeddableElement
   | ExcalidrawImageElement
@@ -131,6 +136,16 @@ export const getPolygonShape = <Point extends GlobalPoint | LocalPoint>(
       pointRotateRads(pointFrom(x + width, cy), center, angle),
       pointRotateRads(pointFrom(cx, y + height), center, angle),
       pointRotateRads(pointFrom(x, cy), center, angle),
+    );
+  } else if (element.type === "trophy") {
+    data = polygonFromPoints(
+      getTrophyPoints(element).map(([lx, ly]) =>
+        pointRotateRads(
+          pointFrom<Point>(x + lx, y + ly),
+          center,
+          angle,
+        ),
+      ),
     );
   } else {
     data = polygon(

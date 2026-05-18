@@ -12,6 +12,7 @@ import {
   deconstructDiamondElement,
   deconstructLinearOrFreeDrawElement,
   deconstructRectanguloidElement,
+  deconstructTrophyElement,
 } from "./utils";
 
 import { elementCenterPoint } from "./bounds";
@@ -19,6 +20,7 @@ import { elementCenterPoint } from "./bounds";
 import type {
   ElementsMap,
   ExcalidrawDiamondElement,
+  ExcalidrawTrophyElement,
   ExcalidrawElement,
   ExcalidrawEllipseElement,
   ExcalidrawFreeDrawElement,
@@ -43,6 +45,8 @@ export const distanceToElement = (
       return distanceToRectanguloidElement(element, elementsMap, p);
     case "diamond":
       return distanceToDiamondElement(element, elementsMap, p);
+    case "trophy":
+      return distanceToTrophyElement(element, elementsMap, p);
     case "ellipse":
       return distanceToEllipseElement(element, elementsMap, p);
     case "line":
@@ -108,6 +112,18 @@ const distanceToDiamondElement = (
       .map((a) => curvePointDistance(a, rotatedPoint))
       .filter((d): d is number => d !== null),
   );
+};
+
+const distanceToTrophyElement = (
+  element: ExcalidrawTrophyElement,
+  elementsMap: ElementsMap,
+  p: GlobalPoint,
+): number => {
+  const center = elementCenterPoint(element, elementsMap);
+  const rotatedPoint = pointRotateRads(p, center, -element.angle as Radians);
+  const [sides] = deconstructTrophyElement(element);
+
+  return Math.min(...sides.map((s) => distanceToLineSegment(rotatedPoint, s)));
 };
 
 /**
