@@ -34,7 +34,7 @@ import type {
   Zoom,
 } from "@excalidraw/excalidraw/types";
 
-import { elementCenterPoint, getDiamondPoints } from "./bounds";
+import { elementCenterPoint, getDiamondPoints, getStarPoints } from "./bounds";
 
 import { generateLinearCollisionShape } from "./shape";
 
@@ -53,6 +53,7 @@ import type {
   ExcalidrawArrowElement,
   ExcalidrawBindableElement,
   ExcalidrawDiamondElement,
+  ExcalidrawStarElement,
   ExcalidrawElement,
   ExcalidrawFreeDrawElement,
   ExcalidrawLinearElement,
@@ -462,6 +463,46 @@ export function deconstructDiamondElement(
   return shape;
 }
 
+/**
+ * Get the **unrotated** building components of a star element
+ * in the form of line segments as a tuple, in this order.
+ *
+ * @param element The element to deconstruct
+ * @param offset An optional offset
+ * @returns Tuple of line **unrotated** segments (0) and curves (1)
+ */
+export function deconstructStarElement(
+  element: ExcalidrawStarElement,
+  offset: number = 0,
+): [LineSegment<GlobalPoint>[], Curve<GlobalPoint>[]] {
+  const cachedShape = getElementShapesCacheEntry(element, offset);
+
+  if (cachedShape) {
+    return cachedShape;
+  }
+
+  const starPoints = getStarPoints(element);
+  const globalPoints = starPoints.map((point) =>
+    pointFrom<GlobalPoint>(element.x + point[0], element.y + point[1]),
+  );
+
+  const sides: LineSegment<GlobalPoint>[] = [];
+  for (let i = 0; i < globalPoints.length; i++) {
+    sides.push(
+      lineSegment<GlobalPoint>(
+        globalPoints[i],
+        globalPoints[(i + 1) % globalPoints.length],
+      ),
+    );
+  }
+
+  const shape = [sides, []] as ElementShape;
+
+  setElementShapesCacheEntry(element, shape, offset);
+
+  return shape;
+}
+
 // Checks if the first and last point are close enough
 // to be considered a loop
 export const isPathALoop = (
@@ -602,6 +643,19 @@ export const getSnapOutlineMidPoint = (
 
           return pointFrom<GlobalPoint>(rotatedPoint[0], rotatedPoint[1]);
         })
+      : element.type === "star"
+      ? getStarPoints(element)
+          .filter((_, index) => index % 2 === 0)
+          .map((point) =>
+            pointRotateRads(
+              pointFrom<GlobalPoint>(
+                element.x + point[0],
+                element.y + point[1],
+              ),
+              center,
+              element.angle,
+            ),
+          )
       : [
           // RIGHT midpoint
           pointRotateRads(
