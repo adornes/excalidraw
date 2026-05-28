@@ -22,9 +22,11 @@ import {
 
 import {
   deconstructDiamondElement,
+  deconstructStarElement,
   deconstructRectanguloidElement,
   elementCenterPoint,
   getDiamondBaseCorners,
+  getStarPoints,
   FOCUS_POINT_SIZE,
   getOmitSidesForEditorInterface,
   getTransformHandles,
@@ -325,10 +327,12 @@ const renderBindingHighlightForBindableElement_simple = (
           context.stroke();
           break;
         case "diamond":
+        case "star":
           {
-            const [segments, curves] = deconstructDiamondElement(
-              suggestedBinding.element,
-            );
+            const [segments, curves] =
+              suggestedBinding.element.type === "star"
+                ? deconstructStarElement(suggestedBinding.element)
+                : deconstructDiamondElement(suggestedBinding.element);
 
             // Draw each line segment individually
             segments.forEach((segment) => {
@@ -461,6 +465,23 @@ const renderBindingHighlightForBindableElement_simple = (
             return pointFrom<GlobalPoint>(rotatedPoint[0], rotatedPoint[1]);
           },
         );
+      } else if (suggestedBinding.element.type === "star") {
+        const center = elementCenterPoint(
+          suggestedBinding.element,
+          elementsMap,
+        );
+        midpoints = getStarPoints(suggestedBinding.element)
+          .filter((_, index) => index % 2 === 0)
+          .map((point) =>
+            pointRotateRads(
+              pointFrom<GlobalPoint>(
+                suggestedBinding.element.x + point[0],
+                suggestedBinding.element.y + point[1],
+              ),
+              center,
+              suggestedBinding.element.angle,
+            ),
+          );
       } else {
         const basePoints = [
           {
@@ -666,11 +687,12 @@ const renderBindingHighlightForBindableElement_complex = (
           context.stroke();
           break;
         case "diamond":
+        case "star":
           {
-            const [segments, curves] = deconstructDiamondElement(
-              element,
-              offset,
-            );
+            const [segments, curves] =
+              element.type === "star"
+                ? deconstructStarElement(element, offset)
+                : deconstructDiamondElement(element, offset);
 
             // Draw each line segment individually
             segments.forEach((segment) => {
@@ -832,6 +854,24 @@ const renderBindingHighlightForBindableElement_complex = (
             y: rotatedPoint[1] - element.y,
           };
         });
+      } else if (element.type === "star") {
+        const center = elementCenterPoint(element, allElementsMap);
+        midpoints = getStarPoints(element)
+          .filter((_, index) => index % 2 === 0)
+          .map((point) => {
+            const rotatedPoint = pointRotateRads(
+              pointFrom<GlobalPoint>(
+                element.x + point[0],
+                element.y + point[1],
+              ),
+              center,
+              element.angle,
+            );
+            return {
+              x: rotatedPoint[0] - element.x,
+              y: rotatedPoint[1] - element.y,
+            };
+          });
       } else {
         const center = elementCenterPoint(element, allElementsMap);
         const basePoints = [

@@ -52,6 +52,7 @@ import { getElementShape } from "./shape";
 import {
   deconstructDiamondElement,
   deconstructRectanguloidElement,
+  deconstructStarElement,
 } from "./utils";
 
 import type { Drawable, Op } from "roughjs/bin/core";
@@ -369,6 +370,9 @@ export const getElementLineSegments = (
     const rotatedSides = getRotatedSides(sides, center, element.angle);
 
     return [...rotatedSides, ...cornerSegments];
+  } else if (element.type === "star") {
+    const [sides] = deconstructStarElement(element);
+    return getRotatedSides(sides, center, element.angle);
   } else if (shape.type === "polygon") {
     if (isTextElement(element)) {
       const container = getContainerElement(element, elementsMap);
@@ -535,6 +539,34 @@ export const getDiamondPoints = (element: ExcalidrawElement) => {
   const leftY = rightY;
 
   return [topX, topY, rightX, rightY, bottomX, bottomY, leftX, leftY];
+};
+
+export const STAR_INNER_RADIUS_RATIO = 0.382;
+
+export const getStarPoints = (element: ExcalidrawElement): LocalPoint[] => {
+  const { width, height } = element;
+  const cx = width / 2;
+  const cy = height / 2;
+  const outerRadiusX = cx;
+  const outerRadiusY = cy;
+  const numPoints = 5;
+  const points: LocalPoint[] = [];
+
+  for (let i = 0; i < numPoints * 2; i++) {
+    const angle = -Math.PI / 2 + (i * Math.PI) / numPoints;
+    const isOuter = i % 2 === 0;
+    const rX = isOuter
+      ? outerRadiusX
+      : outerRadiusX * STAR_INNER_RADIUS_RATIO;
+    const rY = isOuter
+      ? outerRadiusY
+      : outerRadiusY * STAR_INNER_RADIUS_RATIO;
+    const x = Math.max(0, Math.min(width, cx + rX * Math.cos(angle)));
+    const y = Math.max(0, Math.min(height, cy + rY * Math.sin(angle)));
+    points.push(pointFrom(x, y));
+  }
+
+  return points;
 };
 
 // reference: https://eliot-jones.com/2019/12/cubic-bezier-curve-bounding-boxes
